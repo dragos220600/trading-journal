@@ -4,27 +4,22 @@ import { accounts, instruments, setups, tags } from "@/db/schema";
 
 /** Options needed by the trade entry/edit form, scoped to the user. */
 export async function getTradeFormData(userId: number) {
-  const accountRows = await db
-    .select()
-    .from(accounts)
-    .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
-    .orderBy(asc(accounts.name))
-    .all();
-
-  const instrumentRows = await db
-    .select()
-    .from(instruments)
-    .orderBy(asc(instruments.symbol))
-    .all();
-
-  const setupRows = await db
-    .select()
-    .from(setups)
-    .where(and(eq(setups.userId, userId), eq(setups.isArchived, false)))
-    .orderBy(asc(setups.name))
-    .all();
-
-  const tagRows = await db.select().from(tags).orderBy(asc(tags.name)).all();
+  const [accountRows, instrumentRows, setupRows, tagRows] = await Promise.all([
+    db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
+      .orderBy(asc(accounts.name))
+      .all(),
+    db.select().from(instruments).orderBy(asc(instruments.symbol)).all(),
+    db
+      .select()
+      .from(setups)
+      .where(and(eq(setups.userId, userId), eq(setups.isArchived, false)))
+      .orderBy(asc(setups.name))
+      .all(),
+    db.select().from(tags).orderBy(asc(tags.name)).all(),
+  ]);
 
   return {
     accounts: accountRows.map((a) => ({

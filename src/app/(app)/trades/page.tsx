@@ -10,35 +10,36 @@ export const dynamic = "force-dynamic";
 
 export default async function TradesPage() {
   const user = await requireUser();
-  const rows = await db
-    .select({
-      id: trades.id,
-      entryTime: trades.entryTime,
-      direction: trades.direction,
-      quantity: trades.quantity,
-      avgEntryPrice: trades.avgEntryPrice,
-      avgExitPrice: trades.avgExitPrice,
-      rMultiple: trades.rMultiple,
-      netPnl: trades.netPnl,
-      status: trades.status,
-      symbol: instruments.symbol,
-      tickSize: instruments.tickSize,
-      setupName: setups.name,
-    })
-    .from(trades)
-    .innerJoin(instruments, eq(trades.instrumentId, instruments.id))
-    .leftJoin(setups, eq(trades.setupId, setups.id))
-    .where(eq(trades.userId, user.id))
-    .orderBy(desc(trades.entryTime))
-    .all();
-
-  const tagRows = await db
-    .select({ tradeId: tradeTags.tradeId, name: tags.name })
-    .from(tradeTags)
-    .innerJoin(tags, eq(tradeTags.tagId, tags.id))
-    .innerJoin(trades, eq(tradeTags.tradeId, trades.id))
-    .where(eq(trades.userId, user.id))
-    .all();
+  const [rows, tagRows] = await Promise.all([
+    db
+      .select({
+        id: trades.id,
+        entryTime: trades.entryTime,
+        direction: trades.direction,
+        quantity: trades.quantity,
+        avgEntryPrice: trades.avgEntryPrice,
+        avgExitPrice: trades.avgExitPrice,
+        rMultiple: trades.rMultiple,
+        netPnl: trades.netPnl,
+        status: trades.status,
+        symbol: instruments.symbol,
+        tickSize: instruments.tickSize,
+        setupName: setups.name,
+      })
+      .from(trades)
+      .innerJoin(instruments, eq(trades.instrumentId, instruments.id))
+      .leftJoin(setups, eq(trades.setupId, setups.id))
+      .where(eq(trades.userId, user.id))
+      .orderBy(desc(trades.entryTime))
+      .all(),
+    db
+      .select({ tradeId: tradeTags.tradeId, name: tags.name })
+      .from(tradeTags)
+      .innerJoin(tags, eq(tradeTags.tagId, tags.id))
+      .innerJoin(trades, eq(tradeTags.tradeId, trades.id))
+      .where(eq(trades.userId, user.id))
+      .all(),
+  ]);
   const tagsByTrade = new Map<number, string[]>();
   for (const { tradeId, name } of tagRows) {
     tagsByTrade.set(tradeId, [...(tagsByTrade.get(tradeId) ?? []), name]);

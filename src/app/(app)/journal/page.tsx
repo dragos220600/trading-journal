@@ -19,22 +19,23 @@ interface DayRow {
 
 export default async function JournalPage() {
   const user = await requireUser();
-  const tradeRows = await db
-    .select({
-      entryTime: trades.entryTime,
-      netPnl: trades.netPnl,
-      symbol: instruments.symbol,
-    })
-    .from(trades)
-    .innerJoin(instruments, eq(trades.instrumentId, instruments.id))
-    .where(eq(trades.userId, user.id))
-    .all();
-
-  const entryRows = await db
-    .select()
-    .from(journalEntries)
-    .where(eq(journalEntries.userId, user.id))
-    .all();
+  const [tradeRows, entryRows] = await Promise.all([
+    db
+      .select({
+        entryTime: trades.entryTime,
+        netPnl: trades.netPnl,
+        symbol: instruments.symbol,
+      })
+      .from(trades)
+      .innerJoin(instruments, eq(trades.instrumentId, instruments.id))
+      .where(eq(trades.userId, user.id))
+      .all(),
+    db
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.userId, user.id))
+      .all(),
+  ]);
 
   const days = new Map<string, DayRow>();
   for (const t of tradeRows) {

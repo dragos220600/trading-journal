@@ -91,19 +91,64 @@ export default async function TradeDetailPage({
     accountR,
   } = row;
 
-  const fills = await db
-    .select()
-    .from(executions)
-    .where(eq(executions.tradeId, tradeId))
-    .orderBy(asc(executions.time))
-    .all();
+  const entryDate = trade.entryTime.slice(0, 10);
 
-  const tradeTagRows = await db
-    .select({ id: tags.id, name: tags.name, category: tags.category })
-    .from(tradeTags)
-    .innerJoin(tags, eq(tradeTags.tagId, tags.id))
-    .where(eq(tradeTags.tradeId, tradeId))
-    .all();
+  // Everything below only depends on the main row — fetch in parallel
+  const [fills, tradeTagRows, attachmentRows, prevTrade, nextTrade, dayTrades] =
+    await Promise.all([
+      db
+        .select()
+        .from(executions)
+        .where(eq(executions.tradeId, tradeId))
+        .orderBy(asc(executions.time))
+        .all(),
+      db
+        .select({ id: tags.id, name: tags.name, category: tags.category })
+        .from(tradeTags)
+        .innerJoin(tags, eq(tradeTags.tagId, tags.id))
+        .where(eq(tradeTags.tradeId, tradeId))
+        .all(),
+      db
+        .select()
+        .from(attachments)
+        .where(eq(attachments.tradeId, tradeId))
+        .all(),
+      db
+        .select({ id: trades.id })
+        .from(trades)
+        .where(
+          and(
+            eq(trades.userId, user.id),
+            lt(trades.entryTime, trade.entryTime),
+          ),
+        )
+        .orderBy(desc(trades.entryTime))
+        .limit(1)
+        .get(),
+      db
+        .select({ id: trades.id })
+        .from(trades)
+        .where(
+          and(
+            eq(trades.userId, user.id),
+            gt(trades.entryTime, trade.entryTime),
+          ),
+        )
+        .orderBy(asc(trades.entryTime))
+        .limit(1)
+        .get(),
+      db
+        .select({ netPnl: trades.netPnl })
+        .from(trades)
+        .where(
+          and(
+            eq(trades.userId, user.id),
+            like(trades.entryTime, `${entryDate}%`),
+          ),
+        )
+        .all(),
+    ]);
+
   const tagsByCategory = new Map<string, string[]>();
   for (const tag of tradeTagRows) {
     tagsByCategory.set(tag.category, [
@@ -111,37 +156,7 @@ export default async function TradeDetailPage({
       tag.name,
     ]);
   }
-
-  const attachmentRows = await db
-    .select()
-    .from(attachments)
-    .where(eq(attachments.tradeId, tradeId))
-    .all();
   const addAttachmentWithId = addAttachment.bind(null, tradeId);
-
-  // Chronological neighbors for prev/next navigation
-  const prevTrade = await db
-    .select({ id: trades.id })
-    .from(trades)
-    .where(and(eq(trades.userId, user.id), lt(trades.entryTime, trade.entryTime)))
-    .orderBy(desc(trades.entryTime))
-    .limit(1)
-    .get();
-  const nextTrade = await db
-    .select({ id: trades.id })
-    .from(trades)
-    .where(and(eq(trades.userId, user.id), gt(trades.entryTime, trade.entryTime)))
-    .orderBy(asc(trades.entryTime))
-    .limit(1)
-    .get();
-
-  // Day context for the journal link
-  const entryDate = trade.entryTime.slice(0, 10);
-  const dayTrades = await db
-    .select({ netPnl: trades.netPnl })
-    .from(trades)
-    .where(and(eq(trades.userId, user.id), like(trades.entryTime, `${entryDate}%`)))
-    .all();
   const dayPnl =
     Math.round(dayTrades.reduce((s, t) => s + (t.netPnl ?? 0), 0) * 100) / 100;
 

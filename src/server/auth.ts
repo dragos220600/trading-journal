@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { eq, gt, isNull, and, count } from "drizzle-orm";
 import crypto from "node:crypto";
 import { db } from "@/db";
@@ -63,24 +64,27 @@ export interface CurrentUser {
   name: string | null;
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
+/** Cached per request — layout and page share one session lookup. */
+export const getCurrentUser = cache(
+  async (): Promise<CurrentUser | null> => {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!token) return null;
 
-  const row = await db
-    .select({ id: users.id, email: users.email, name: users.name })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(
-      and(
-        eq(sessions.token, token),
-        gt(sessions.expiresAt, new Date().toISOString()),
-      ),
-    )
-    .get();
-  return row ?? null;
-}
+    const row = await db
+      .select({ id: users.id, email: users.email, name: users.name })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(
+        and(
+          eq(sessions.token, token),
+          gt(sessions.expiresAt, new Date().toISOString()),
+        ),
+      )
+      .get();
+    return row ?? null;
+  },
+);
 
 /** Page/layout guard — redirects to /login when signed out. */
 export async function requireUser(): Promise<CurrentUser> {

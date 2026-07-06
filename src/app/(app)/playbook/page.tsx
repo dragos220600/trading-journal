@@ -22,23 +22,24 @@ interface SetupStats {
 
 export default async function PlaybookPage() {
   const user = await requireUser();
-  const setupRows = await db
-    .select()
-    .from(setups)
-    .where(and(eq(setups.userId, user.id), eq(setups.isArchived, false)))
-    .orderBy(asc(setups.name))
-    .all();
-
-  const allTradeRows = await db
-    .select({
-      setupId: trades.setupId,
-      netPnl: trades.netPnl,
-      rMultiple: trades.rMultiple,
-      status: trades.status,
-    })
-    .from(trades)
-    .where(eq(trades.userId, user.id))
-    .all();
+  const [setupRows, allTradeRows] = await Promise.all([
+    db
+      .select()
+      .from(setups)
+      .where(and(eq(setups.userId, user.id), eq(setups.isArchived, false)))
+      .orderBy(asc(setups.name))
+      .all(),
+    db
+      .select({
+        setupId: trades.setupId,
+        netPnl: trades.netPnl,
+        rMultiple: trades.rMultiple,
+        status: trades.status,
+      })
+      .from(trades)
+      .where(eq(trades.userId, user.id))
+      .all(),
+  ]);
   const closedTradeRows = allTradeRows.filter(
     (t) => t.status === "closed" && t.netPnl != null,
   );

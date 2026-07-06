@@ -19,17 +19,15 @@ const inputCls =
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const accountRows = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.userId, user.id))
-    .orderBy(asc(accounts.isArchived), asc(accounts.name))
-    .all();
-  const instrumentRows = await db
-    .select()
-    .from(instruments)
-    .orderBy(asc(instruments.symbol))
-    .all();
+  const [accountRows, instrumentRows] = await Promise.all([
+    db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, user.id))
+      .orderBy(asc(accounts.isArchived), asc(accounts.name))
+      .all(),
+    db.select().from(instruments).orderBy(asc(instruments.symbol)).all(),
+  ]);
 
   return (
     <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-5xl">

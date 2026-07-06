@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, trades } from "@/db/schema";
 import { requireUser } from "@/server/auth";
@@ -6,24 +6,22 @@ import { localToday } from "@/lib/format";
 import { Sidebar } from "@/components/sidebar";
 
 async function accountBalance(userId: number) {
-  const active = await db
-    .select()
-    .from(accounts)
-    .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
-    .all();
+  const [active, tradeRows] = await Promise.all([
+    db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
+      .all(),
+    db
+      .select({ netPnl: trades.netPnl, entryTime: trades.entryTime })
+      .from(trades)
+      .innerJoin(accounts, eq(trades.accountId, accounts.id))
+      .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
+      .all(),
+  ]);
   const initial = active.reduce((s, a) => s + a.initialBalance, 0);
   if (active.length === 0) return { balance: 0, mtdPct: null };
 
-  const tradeRows = await db
-    .select({ netPnl: trades.netPnl, entryTime: trades.entryTime })
-    .from(trades)
-    .where(
-      inArray(
-        trades.accountId,
-        active.map((a) => a.id),
-      ),
-    )
-    .all();
   const activeTrades = tradeRows.filter((t) => t.netPnl != null);
 
   const totalPnl = activeTrades.reduce((s, t) => s + t.netPnl!, 0);
