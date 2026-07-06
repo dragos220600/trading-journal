@@ -63,7 +63,7 @@ export default async function AnalyticsPage() {
 
   if (closed.length === 0) {
     return (
-      <div className="px-10 py-8 max-w-6xl">
+      <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-6xl">
         <header className="mb-8">
           <p className="eyebrow mb-2">05 · Deep dive</p>
           <h1 className="text-3xl font-bold tracking-tight">Performance</h1>
@@ -177,7 +177,7 @@ export default async function AnalyticsPage() {
   ];
 
   return (
-    <div className="px-10 py-8 max-w-6xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-6xl">
       <header
         className="mb-6 reveal"
         style={{ "--i": 0 } as React.CSSProperties}
@@ -277,7 +277,7 @@ export default async function AnalyticsPage() {
         <p className="num mb-4 text-xs text-text-faint">
           Where your R comes from
         </p>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead>
             <tr className="border-b border-ink-line text-left">
               <th className="eyebrow py-2.5 pr-4 font-medium">Bucket</th>
@@ -337,7 +337,7 @@ export default async function AnalyticsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </section>
 
       <section

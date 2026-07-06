@@ -10,7 +10,7 @@ export default async function NewTradePage() {
   const formData = getTradeFormData(user.id);
 
   return (
-    <div className="px-8 py-8 max-w-5xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-5xl">
       <header className="mb-8 reveal" style={{ "--i": 0 } as React.CSSProperties}>
         <p className="eyebrow mb-2">02 · New execution</p>
         <h1 className="text-3xl font-bold tracking-tight">Log a trade</h1>

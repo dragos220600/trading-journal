@@ -195,7 +195,7 @@ export default async function DashboardPage() {
   const recent = rows.slice(0, 5);
 
   return (
-    <div className="px-10 py-8 max-w-6xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-6xl">
       <header
         className="mb-8 flex flex-wrap items-end justify-between gap-4 reveal"
         style={{ "--i": 0 } as React.CSSProperties}
@@ -365,7 +365,7 @@ export default async function DashboardPage() {
                 All trades ↗
               </Link>
             </div>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-line text-left">
                   <th className="eyebrow py-2.5 pr-4 font-medium">Symbol</th>
@@ -431,7 +431,7 @@ export default async function DashboardPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </section>
         </>
       )}

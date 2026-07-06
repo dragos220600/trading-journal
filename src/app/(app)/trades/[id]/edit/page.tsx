@@ -37,7 +37,7 @@ export default async function EditTradePage({
   const updateTradeWithId = updateTrade.bind(null, tradeId);
 
   return (
-    <div className="px-8 py-8 max-w-5xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-5xl">
       <header className="mb-8">
         <p className="eyebrow mb-2">02 · Trade #{trade.id}</p>
         <h1 className="text-3xl font-bold tracking-tight">Edit trade</h1>

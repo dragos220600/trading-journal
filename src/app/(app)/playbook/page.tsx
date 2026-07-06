@@ -74,7 +74,7 @@ export default async function PlaybookPage() {
   };
 
   return (
-    <div className="px-10 py-8 max-w-6xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-6xl">
       <header
         className="mb-6 flex flex-wrap items-end justify-between gap-4 reveal"
         style={{ "--i": 0 } as React.CSSProperties}

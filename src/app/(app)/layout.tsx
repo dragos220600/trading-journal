@@ -53,7 +53,7 @@ export default async function AppLayout({
         mtdPct={mtdPct}
         userLabel={user.name || user.email}
       />
-      <main className="flex-1 min-w-0">{children}</main>
+      <main className="flex-1 min-w-0 pt-14 lg:pt-0">{children}</main>
     </div>
   );
 }

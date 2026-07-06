@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   LayoutDashboard,
   ListOrdered,
+  Menu,
   NotebookPen,
   BookOpenCheck,
   ChartNoAxesCombined,
   FileUp,
   LogOut,
   Settings,
+  X,
 } from "lucide-react";
 import { signOutAction } from "@/server/auth-actions";
 import { formatMoney } from "@/lib/format";
@@ -72,9 +75,53 @@ export function Sidebar({
   userLabel: string;
 }) {
   const pathname = usePathname();
+  // The drawer is tied to the route it was opened on, so navigating
+  // anywhere closes it without needing an effect.
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  const open = openPath === pathname;
+  const setOpen = (next: boolean) => setOpenPath(next ? pathname : null);
 
   return (
-    <aside className="sticky top-0 h-screen w-60 shrink-0 border-r border-ink-line bg-ink-raised flex flex-col overflow-y-auto">
+    <>
+      {/* Mobile top bar */}
+      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-ink-line bg-ink-raised px-4 lg:hidden">
+        <span className="flex items-center gap-2.5">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-soft to-accent-fill text-sm font-bold text-accent-ink"
+            aria-hidden
+          >
+            L
+          </span>
+          <span className="font-bold tracking-wide">LEDGER</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink-line text-text-muted"
+        >
+          {open ? <X size={17} aria-hidden /> : <Menu size={17} aria-hidden />}
+        </button>
+      </header>
+
+      {/* Backdrop (mobile, drawer open) */}
+      {open && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-60 border-r border-ink-line bg-ink-raised flex flex-col overflow-y-auto transition-transform duration-200",
+          open ? "translate-x-0" : "-translate-x-full",
+          "lg:sticky lg:top-0 lg:h-screen lg:shrink-0 lg:translate-x-0 lg:transition-none",
+        )}
+      >
       <div className="px-4 py-5 flex items-center gap-3">
         <span
           className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-soft to-accent-fill font-bold text-accent-ink shadow-[0_0_18px_-4px_rgba(34,211,238,0.6)]"
@@ -156,6 +203,7 @@ export function Sidebar({
           </form>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -32,7 +32,7 @@ export default async function SettingsPage() {
     .all();
 
   return (
-    <div className="px-8 py-8 max-w-5xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-5xl">
       <header className="mb-8">
         <p className="eyebrow mb-2">07 · Configuration</p>
         <h1 className="text-3xl font-bold tracking-tight">
@@ -43,7 +43,7 @@ export default async function SettingsPage() {
       {/* Accounts */}
       <section className="mb-12">
         <h2 className="eyebrow mb-3">Accounts</h2>
-        <div className="card overflow-hidden mb-4">
+        <div className="card overflow-x-auto mb-4">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-line bg-ink-raised text-left">
@@ -321,7 +321,7 @@ export default async function SettingsPage() {
       {/* Instruments */}
       <section>
         <h2 className="eyebrow mb-3">Instruments</h2>
-        <div className="card overflow-hidden mb-4">
+        <div className="card overflow-x-auto mb-4">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-line bg-ink-raised text-left">

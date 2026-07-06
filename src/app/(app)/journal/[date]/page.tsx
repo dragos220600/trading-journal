@@ -74,7 +74,7 @@ export default async function JournalDayPage({
   const attachAction = addJournalAttachment.bind(null, date);
 
   return (
-    <div className="px-8 py-8 max-w-4xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8 max-w-4xl">
       <div className="mb-6 flex items-center justify-between">
         <Link
           href="/journal"

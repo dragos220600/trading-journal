@@ -216,7 +216,7 @@ export default async function TradeDetailPage({
   ];
 
   return (
-    <div className="px-10 py-8 max-w-6xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-6xl">
       <div className="mb-6 flex items-center justify-between">
         <Link
           href="/trades"
@@ -362,7 +362,7 @@ export default async function TradeDetailPage({
           <p className="num mb-3 text-xs text-text-faint">
             Every execution in this position
           </p>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-line text-left">
                 <th className="eyebrow py-2.5 pr-4 font-medium">Time</th>
@@ -401,7 +401,7 @@ export default async function TradeDetailPage({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </section>
 

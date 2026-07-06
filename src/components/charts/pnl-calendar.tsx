@@ -58,12 +58,12 @@ export function PnlCalendar({ days }: { days: Map<string, DayPnl> }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {months.map(({ year, month }) => (
-        <div key={`${year}-${month}`}>
+        <div key={`${year}-${month}`} className="min-w-0 overflow-x-auto">
           <p className="text-sm font-semibold mb-2">
             {MONTH_NAMES[month]}{" "}
             <span className="num text-text-faint">{year}</span>
           </p>
-          <div className="grid grid-cols-7 gap-0.5">
+          <div className="grid min-w-[420px] grid-cols-7 gap-0.5">
             {WEEKDAY_HEADERS.map((weekday) => (
               <div
                 key={weekday}

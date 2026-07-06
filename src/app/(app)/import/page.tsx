@@ -40,7 +40,7 @@ export default async function ImportPage() {
   const lastBatch = batches[0];
 
   return (
-    <div className="px-10 py-8 max-w-5xl">
+    <div className="px-4 py-6 sm:px-6 lg:px-10 lg:py-8 max-w-5xl">
       <header
         className="mb-6 reveal"
         style={{ "--i": 0 } as React.CSSProperties}
