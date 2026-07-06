@@ -1,9 +1,10 @@
 /**
- * Idempotent seed: CME futures contract specs, starter tags, and a
- * first prop account. Run with `npm run db:seed` (safe to re-run).
+ * Idempotent seed: CME futures contract specs and starter tags.
+ * Run with `npm run db:seed` (works against the local file or Turso,
+ * depending on TURSO_DATABASE_URL). Safe to re-run.
  */
 import { db } from "./index";
-import { accounts, instruments, tags } from "./schema";
+import { instruments, tags } from "./schema";
 
 const FUTURES: (typeof instruments.$inferInsert)[] = [
   // symbol, name, tickSize, tickValue ($/tick), pointValue ($/point)
@@ -46,17 +47,15 @@ const TAGS: (typeof tags.$inferInsert)[] = [
   { name: "Low volume", category: "context" },
 ];
 
-db.insert(instruments).values(FUTURES).onConflictDoNothing().run();
-db.insert(tags).values(TAGS).onConflictDoNothing().run();
+async function main() {
+  await db.insert(instruments).values(FUTURES).onConflictDoNothing().run();
+  await db.insert(tags).values(TAGS).onConflictDoNothing().run();
 
-const existingAccounts = db.select().from(accounts).all();
-if (existingAccounts.length === 0) {
-  db.insert(accounts)
-    .values({ name: "Apex — Main", broker: "Tradovate (Apex)", currency: "USD" })
-    .run();
+  const instrumentCount = (await db.select().from(instruments).all()).length;
+  const tagCount = (await db.select().from(tags).all()).length;
+  console.log("Seed complete:");
+  console.log(`  instruments: ${instrumentCount}`);
+  console.log(`  tags:        ${tagCount}`);
 }
 
-console.log("Seed complete:");
-console.log(`  instruments: ${db.select().from(instruments).all().length}`);
-console.log(`  tags:        ${db.select().from(tags).all().length}`);
-console.log(`  accounts:    ${db.select().from(accounts).all().length}`);
+main();

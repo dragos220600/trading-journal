@@ -4,8 +4,7 @@ import path from "node:path";
 import { db } from "@/db";
 import { attachments, journalEntries, trades } from "@/db/schema";
 import { getCurrentUser } from "@/server/auth";
-
-const ATTACHMENTS_DIR = path.join(process.cwd(), "data", "attachments");
+import { ATTACHMENTS_DIR } from "@/server/attachment-io";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -28,7 +27,7 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const row = db
+  const row = await db
     .select()
     .from(attachments)
     .where(eq(attachments.id, attachmentId))
@@ -38,13 +37,13 @@ export async function GET(
   // Only the owner of the parent trade / journal entry may read it
   const owned =
     row.tradeId != null
-      ? db
+      ? await db
           .select({ id: trades.id })
           .from(trades)
           .where(and(eq(trades.id, row.tradeId), eq(trades.userId, user.id)))
           .get()
       : row.journalEntryId != null
-        ? db
+        ? await db
             .select({ id: journalEntries.id })
             .from(journalEntries)
             .where(
@@ -56,6 +55,11 @@ export async function GET(
             .get()
         : null;
   if (!owned) return new Response("Not found", { status: 404 });
+
+  // Blob-stored images live at a public unguessable URL — redirect
+  if (row.filePath.startsWith("http")) {
+    return Response.redirect(row.filePath, 302);
+  }
 
   const target = path.resolve(ATTACHMENTS_DIR, row.filePath);
   if (!target.startsWith(ATTACHMENTS_DIR) || !fs.existsSync(target)) {

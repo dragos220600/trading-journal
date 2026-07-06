@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
   const user = await requireUser();
-  const rows = db
+  const rows = await db
     .select({
       id: trades.id,
       direction: trades.direction,
@@ -90,7 +90,7 @@ export default async function AnalyticsPage() {
   }
 
   // Mistake/emotion tag cost
-  const tagRows = db
+  const tagRows = await db
     .select({
       tradeId: tradeTags.tradeId,
       tagName: tags.name,

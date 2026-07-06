@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TradesPage() {
   const user = await requireUser();
-  const rows = db
+  const rows = await db
     .select({
       id: trades.id,
       entryTime: trades.entryTime,
@@ -32,7 +32,7 @@ export default async function TradesPage() {
     .orderBy(desc(trades.entryTime))
     .all();
 
-  const tagRows = db
+  const tagRows = await db
     .select({ tradeId: tradeTags.tradeId, name: tags.name })
     .from(tradeTags)
     .innerJoin(tags, eq(tradeTags.tagId, tags.id))

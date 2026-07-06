@@ -5,8 +5,8 @@ import { requireUser } from "@/server/auth";
 import { localToday } from "@/lib/format";
 import { Sidebar } from "@/components/sidebar";
 
-function accountBalance(userId: number) {
-  const active = db
+async function accountBalance(userId: number) {
+  const active = await db
     .select()
     .from(accounts)
     .where(and(eq(accounts.userId, userId), eq(accounts.isArchived, false)))
@@ -14,7 +14,7 @@ function accountBalance(userId: number) {
   const initial = active.reduce((s, a) => s + a.initialBalance, 0);
   if (active.length === 0) return { balance: 0, mtdPct: null };
 
-  const activeTrades = db
+  const tradeRows = await db
     .select({ netPnl: trades.netPnl, entryTime: trades.entryTime })
     .from(trades)
     .where(
@@ -23,8 +23,8 @@ function accountBalance(userId: number) {
         active.map((a) => a.id),
       ),
     )
-    .all()
-    .filter((t) => t.netPnl != null);
+    .all();
+  const activeTrades = tradeRows.filter((t) => t.netPnl != null);
 
   const totalPnl = activeTrades.reduce((s, t) => s + t.netPnl!, 0);
   const thisMonth = localToday().slice(0, 7);
@@ -34,7 +34,8 @@ function accountBalance(userId: number) {
 
   const balance = initial + totalPnl;
   const monthStart = balance - mtdPnl;
-  const mtdPct = monthStart !== 0 ? (mtdPnl / Math.abs(monthStart)) * 100 : null;
+  const mtdPct =
+    monthStart !== 0 ? (mtdPnl / Math.abs(monthStart)) * 100 : null;
   return { balance, mtdPct };
 }
 
@@ -44,7 +45,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const { balance, mtdPct } = accountBalance(user.id);
+  const { balance, mtdPct } = await accountBalance(user.id);
 
   return (
     <div className="flex min-h-screen">

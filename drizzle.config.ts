@@ -1,10 +1,12 @@
 import { defineConfig } from "drizzle-kit";
 
+const remote = process.env.TURSO_DATABASE_URL;
+
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
-  dbCredentials: {
-    url: "./data/journal.db",
-  },
+  dialect: "turso",
+  dbCredentials: remote
+    ? { url: remote, authToken: process.env.TURSO_AUTH_TOKEN }
+    : { url: "file:./data/journal.db" },
 });

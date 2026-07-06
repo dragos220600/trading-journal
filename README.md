@@ -29,8 +29,42 @@ npm run db:studio  # browse the database in Drizzle Studio
 ```
 
 Auth: register at `/register` — the **first** user to register adopts any
-data created before auth existed. Traffic is plain HTTP; keep it on the
-LAN and don't port-forward it to the internet as-is.
+data created before auth existed. Set `REGISTRATION_CODE` to gate signups
+on a public deployment.
+
+## Deploying to Vercel (free)
+
+The app runs on Vercel with **Turso** (hosted SQLite) and **Vercel Blob**
+(screenshots). Locally it keeps using `data/journal.db` and
+`data/attachments/` — no env vars needed.
+
+1. **Turso** ([turso.tech](https://turso.tech), free tier): create a
+   database, copy its URL and create an auth token. Apply the schema and
+   seed data from your machine:
+
+   ```powershell
+   $env:TURSO_DATABASE_URL = "libsql://…turso.io"
+   $env:TURSO_AUTH_TOKEN = "…"
+   npm run db:push
+   npm run db:seed
+   ```
+
+   (Exact copy of an existing local journal instead: `turso db create
+   ledger --from-file data/journal.db` with the Turso CLI.)
+
+2. **Vercel** ([vercel.com](https://vercel.com), Hobby is free): Add New
+   Project → import this GitHub repo → add the env vars
+   `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and (recommended)
+   `REGISTRATION_CODE` → Deploy.
+
+3. **Blob storage**: in the Vercel project, Storage → Create → Blob →
+   connect it (this injects `BLOB_READ_WRITE_TOKEN`) → redeploy.
+
+4. Open the deployment URL, register first (adopts any unowned data),
+   then share the URL + invite code with friends.
+
+Note: hosted request bodies cap at ~4.5MB — screenshots are limited to
+4MB each and CSV imports to about the same.
 
 ## Data model (src/db/schema.ts)
 

@@ -12,9 +12,11 @@ const labelCls = "block text-xs font-medium text-text-muted mb-1.5";
 export function AuthForm({
   mode,
   action,
+  requireInvite = false,
 }: {
   mode: "login" | "register";
   action: (prev: AuthState, formData: FormData) => Promise<AuthState>;
+  requireInvite?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, { error: null });
 
@@ -65,6 +67,22 @@ export function AuthForm({
           className={inputCls}
         />
       </div>
+
+      {mode === "register" && requireInvite && (
+        <div>
+          <label htmlFor="inviteCode" className={labelCls}>
+            Invite code
+          </label>
+          <input
+            id="inviteCode"
+            name="inviteCode"
+            required
+            autoComplete="off"
+            placeholder="Ask the desk owner"
+            className={inputCls}
+          />
+        </div>
+      )}
 
       {state.error && (
         <p className="rounded-md border border-loss/40 bg-loss/10 px-3 py-2 text-xs text-loss">

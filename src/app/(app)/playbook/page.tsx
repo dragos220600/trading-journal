@@ -22,14 +22,14 @@ interface SetupStats {
 
 export default async function PlaybookPage() {
   const user = await requireUser();
-  const setupRows = db
+  const setupRows = await db
     .select()
     .from(setups)
     .where(and(eq(setups.userId, user.id), eq(setups.isArchived, false)))
     .orderBy(asc(setups.name))
     .all();
 
-  const allTradeRows = db
+  const allTradeRows = await db
     .select({
       setupId: trades.setupId,
       netPnl: trades.netPnl,

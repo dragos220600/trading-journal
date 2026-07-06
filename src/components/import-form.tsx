@@ -102,7 +102,7 @@ export function ImportForm() {
           Browse Files
         </span>
         <span className="num mt-4 block text-[10px] tracking-[0.14em] uppercase text-text-faint">
-          .csv · up to 10MB
+          .csv · up to 4MB
         </span>
       </button>
       <input

@@ -62,7 +62,7 @@ export default async function TradeDetailPage({
   const tradeId = Number(id);
   if (!Number.isFinite(tradeId)) notFound();
 
-  const row = db
+  const row = await db
     .select({
       trade: trades,
       symbol: instruments.symbol,
@@ -91,14 +91,14 @@ export default async function TradeDetailPage({
     accountR,
   } = row;
 
-  const fills = db
+  const fills = await db
     .select()
     .from(executions)
     .where(eq(executions.tradeId, tradeId))
     .orderBy(asc(executions.time))
     .all();
 
-  const tradeTagRows = db
+  const tradeTagRows = await db
     .select({ id: tags.id, name: tags.name, category: tags.category })
     .from(tradeTags)
     .innerJoin(tags, eq(tradeTags.tagId, tags.id))
@@ -112,7 +112,7 @@ export default async function TradeDetailPage({
     ]);
   }
 
-  const attachmentRows = db
+  const attachmentRows = await db
     .select()
     .from(attachments)
     .where(eq(attachments.tradeId, tradeId))
@@ -120,14 +120,14 @@ export default async function TradeDetailPage({
   const addAttachmentWithId = addAttachment.bind(null, tradeId);
 
   // Chronological neighbors for prev/next navigation
-  const prevTrade = db
+  const prevTrade = await db
     .select({ id: trades.id })
     .from(trades)
     .where(and(eq(trades.userId, user.id), lt(trades.entryTime, trade.entryTime)))
     .orderBy(desc(trades.entryTime))
     .limit(1)
     .get();
-  const nextTrade = db
+  const nextTrade = await db
     .select({ id: trades.id })
     .from(trades)
     .where(and(eq(trades.userId, user.id), gt(trades.entryTime, trade.entryTime)))
@@ -137,7 +137,7 @@ export default async function TradeDetailPage({
 
   // Day context for the journal link
   const entryDate = trade.entryTime.slice(0, 10);
-  const dayTrades = db
+  const dayTrades = await db
     .select({ netPnl: trades.netPnl })
     .from(trades)
     .where(and(eq(trades.userId, user.id), like(trades.entryTime, `${entryDate}%`)))

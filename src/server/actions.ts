@@ -16,9 +16,7 @@ import {
 } from "@/db/schema";
 import { computeTradeMetrics } from "@/lib/trade-math";
 import { requireUser } from "./auth";
-import { ATTACHMENTS_DIR, saveAttachmentFile } from "./attachment-io";
-import fs from "node:fs";
-import path from "node:path";
+import { deleteAttachmentFile, saveAttachmentFile } from "./attachment-io";
 
 /* ----------------------------- accounts ----------------------------- */
 
@@ -35,7 +33,8 @@ export async function createAccount(formData: FormData) {
     [...formData.entries()].filter(([, v]) => v !== ""),
   );
   const data = accountSchema.parse(raw);
-  db.insert(accounts)
+  await db
+    .insert(accounts)
     .values({
       userId: user.id,
       name: data.name,
@@ -58,17 +57,17 @@ export async function updateAccountR(formData: FormData) {
   const rValue =
     rawValue === "" ? null : z.coerce.number().positive().parse(rawValue);
 
-  const owned = db
+  const owned = await db
     .select({ id: accounts.id })
     .from(accounts)
     .where(and(eq(accounts.id, id), eq(accounts.userId, user.id)))
     .get();
   if (!owned) throw new Error("Account not found");
 
-  db.transaction(() => {
-    db.update(accounts).set({ rValue }).where(eq(accounts.id, id)).run();
+  await db.transaction(async (tx) => {
+    await tx.update(accounts).set({ rValue }).where(eq(accounts.id, id)).run();
 
-    const accountTrades = db
+    const accountTrades = await tx
       .select({
         id: trades.id,
         netPnl: trades.netPnl,
@@ -90,7 +89,8 @@ export async function updateAccountR(formData: FormData) {
           rMultiple = trade.netPnl / trade.plannedRiskAmount;
         }
       }
-      db.update(trades)
+      await tx
+        .update(trades)
         .set({ rMultiple })
         .where(eq(trades.id, trade.id))
         .run();
@@ -107,7 +107,7 @@ export async function updateAccountR(formData: FormData) {
 export async function updateAccountRules(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
-  const owned = db
+  const owned = await db
     .select({ id: accounts.id })
     .from(accounts)
     .where(and(eq(accounts.id, id), eq(accounts.userId, user.id)))
@@ -123,7 +123,8 @@ export async function updateAccountRules(formData: FormData) {
     .min(0)
     .parse(formData.get("initialBalance"));
 
-  db.update(accounts)
+  await db
+    .update(accounts)
     .set({
       initialBalance,
       trailingDrawdown: optional("trailingDrawdown"),
@@ -142,7 +143,8 @@ export async function renameAccount(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
   const name = z.string().trim().min(1).parse(formData.get("name"));
-  db.update(accounts)
+  await db
+    .update(accounts)
     .set({ name })
     .where(and(eq(accounts.id, id), eq(accounts.userId, user.id)))
     .run();
@@ -152,13 +154,14 @@ export async function renameAccount(formData: FormData) {
 export async function toggleAccountArchived(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
-  const account = db
+  const account = await db
     .select()
     .from(accounts)
     .where(and(eq(accounts.id, id), eq(accounts.userId, user.id)))
     .get();
   if (!account) throw new Error("Account not found");
-  db.update(accounts)
+  await db
+    .update(accounts)
     .set({ isArchived: !account.isArchived })
     .where(eq(accounts.id, id))
     .run();
@@ -178,9 +181,11 @@ const instrumentSchema = z.object({
 });
 
 export async function createInstrument(formData: FormData) {
+  await requireUser();
   const data = instrumentSchema.parse(Object.fromEntries(formData));
   const pointValue = data.tickValue / data.tickSize;
-  db.insert(instruments)
+  await db
+    .insert(instruments)
     .values({
       symbol: data.symbol,
       name: data.name || null,
@@ -204,7 +209,8 @@ const setupSchema = z.object({
 export async function createSetup(formData: FormData) {
   const user = await requireUser();
   const data = setupSchema.parse(Object.fromEntries(formData));
-  db.insert(setups)
+  await db
+    .insert(setups)
     .values({
       userId: user.id,
       name: data.name,
@@ -223,18 +229,19 @@ export async function createSetup(formData: FormData) {
 export async function deleteSetup(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
-  const owned = db
+  const owned = await db
     .select({ id: setups.id })
     .from(setups)
     .where(and(eq(setups.id, id), eq(setups.userId, user.id)))
     .get();
   if (!owned) throw new Error("Setup not found");
-  db.transaction(() => {
-    db.update(trades)
+  await db.transaction(async (tx) => {
+    await tx
+      .update(trades)
       .set({ setupId: null })
       .where(eq(trades.setupId, id))
       .run();
-    db.delete(setups).where(eq(setups.id, id)).run();
+    await tx.delete(setups).where(eq(setups.id, id)).run();
   });
   revalidatePath("/playbook");
   revalidatePath("/trades");
@@ -276,8 +283,11 @@ function parseTradeForm(formData: FormData) {
   return { data, tagIds };
 }
 
-function tradeRowFromForm(userId: number, data: z.infer<typeof tradeSchema>) {
-  const instrument = db
+async function tradeRowFromForm(
+  userId: number,
+  data: z.infer<typeof tradeSchema>,
+) {
+  const instrument = await db
     .select()
     .from(instruments)
     .where(eq(instruments.id, data.instrumentId))
@@ -285,14 +295,14 @@ function tradeRowFromForm(userId: number, data: z.infer<typeof tradeSchema>) {
   if (!instrument) throw new Error("Instrument not found");
 
   // The account (and setup, if any) must belong to the signed-in user
-  const account = db
+  const account = await db
     .select({ rValue: accounts.rValue })
     .from(accounts)
     .where(and(eq(accounts.id, data.accountId), eq(accounts.userId, userId)))
     .get();
   if (!account) throw new Error("Account not found");
   if (data.setupId != null) {
-    const setup = db
+    const setup = await db
       .select({ id: setups.id })
       .from(setups)
       .where(and(eq(setups.id, data.setupId), eq(setups.userId, userId)))
@@ -345,14 +355,15 @@ function tradeRowFromForm(userId: number, data: z.infer<typeof tradeSchema>) {
   };
 }
 
+type TradeRow = Awaited<ReturnType<typeof tradeRowFromForm>>;
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /** Manual trades get one entry fill and (if closed) one exit fill. */
-function writeManualExecutions(
-  tradeId: number,
-  row: ReturnType<typeof tradeRowFromForm>,
-) {
-  db.delete(executions).where(eq(executions.tradeId, tradeId)).run();
+async function writeManualExecutions(tx: Tx, tradeId: number, row: TradeRow) {
+  await tx.delete(executions).where(eq(executions.tradeId, tradeId)).run();
   const entrySide = row.direction === "long" ? "buy" : "sell";
-  db.insert(executions)
+  await tx
+    .insert(executions)
     .values({
       tradeId,
       side: entrySide,
@@ -362,7 +373,8 @@ function writeManualExecutions(
     })
     .run();
   if (row.avgExitPrice != null) {
-    db.insert(executions)
+    await tx
+      .insert(executions)
       .values({
         tradeId,
         side: entrySide === "buy" ? "sell" : "buy",
@@ -382,21 +394,23 @@ async function saveFormScreenshots(tradeId: number, formData: FormData) {
   const captions = formData.getAll("screenshotCaptions").map(String);
 
   for (const [index, file] of files.entries()) {
-    const fileName = await saveAttachmentFile(file, `trade-${tradeId}`);
-    db.insert(attachments)
+    const filePath = await saveAttachmentFile(file, `trade-${tradeId}`);
+    await db
+      .insert(attachments)
       .values({
         tradeId,
-        filePath: fileName,
+        filePath,
         caption: captions[index]?.trim() || null,
       })
       .run();
   }
 }
 
-function writeTradeTags(tradeId: number, tagIds: number[]) {
-  db.delete(tradeTags).where(eq(tradeTags.tradeId, tradeId)).run();
+async function writeTradeTags(tx: Tx, tradeId: number, tagIds: number[]) {
+  await tx.delete(tradeTags).where(eq(tradeTags.tradeId, tradeId)).run();
   if (tagIds.length > 0) {
-    db.insert(tradeTags)
+    await tx
+      .insert(tradeTags)
       .values(tagIds.map((tagId) => ({ tradeId, tagId })))
       .run();
   }
@@ -405,12 +419,12 @@ function writeTradeTags(tradeId: number, tagIds: number[]) {
 export async function createTrade(formData: FormData) {
   const user = await requireUser();
   const { data, tagIds } = parseTradeForm(formData);
-  const row = tradeRowFromForm(user.id, data);
+  const row = await tradeRowFromForm(user.id, data);
 
-  const tradeId = db.transaction(() => {
-    const inserted = db.insert(trades).values(row).returning().get();
-    writeManualExecutions(inserted.id, row);
-    writeTradeTags(inserted.id, tagIds);
+  const tradeId = await db.transaction(async (tx) => {
+    const inserted = await tx.insert(trades).values(row).returning().get();
+    await writeManualExecutions(tx, inserted.id, row);
+    await writeTradeTags(tx, inserted.id, tagIds);
     return inserted.id;
   });
   await saveFormScreenshots(tradeId, formData);
@@ -422,7 +436,7 @@ export async function createTrade(formData: FormData) {
 
 export async function updateTrade(tradeId: number, formData: FormData) {
   const user = await requireUser();
-  const owned = db
+  const owned = await db
     .select({ id: trades.id })
     .from(trades)
     .where(and(eq(trades.id, tradeId), eq(trades.userId, user.id)))
@@ -430,12 +444,12 @@ export async function updateTrade(tradeId: number, formData: FormData) {
   if (!owned) throw new Error("Trade not found");
 
   const { data, tagIds } = parseTradeForm(formData);
-  const row = tradeRowFromForm(user.id, data);
+  const row = await tradeRowFromForm(user.id, data);
 
-  db.transaction(() => {
-    db.update(trades).set(row).where(eq(trades.id, tradeId)).run();
-    writeManualExecutions(tradeId, row);
-    writeTradeTags(tradeId, tagIds);
+  await db.transaction(async (tx) => {
+    await tx.update(trades).set(row).where(eq(trades.id, tradeId)).run();
+    await writeManualExecutions(tx, tradeId, row);
+    await writeTradeTags(tx, tradeId, tagIds);
   });
   await saveFormScreenshots(tradeId, formData);
 
@@ -448,27 +462,24 @@ export async function updateTrade(tradeId: number, formData: FormData) {
 export async function deleteTrade(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
-  const owned = db
+  const owned = await db
     .select({ id: trades.id })
     .from(trades)
     .where(and(eq(trades.id, id), eq(trades.userId, user.id)))
     .get();
   if (!owned) throw new Error("Trade not found");
 
-  // The DB cascade removes attachment rows — unlink their files first
-  const tradeAttachments = db
+  // The DB cascade removes attachment rows — delete their stored files first
+  const tradeAttachments = await db
     .select({ filePath: attachments.filePath })
     .from(attachments)
     .where(eq(attachments.tradeId, id))
     .all();
   for (const { filePath } of tradeAttachments) {
-    const target = path.resolve(ATTACHMENTS_DIR, filePath);
-    if (target.startsWith(ATTACHMENTS_DIR) && fs.existsSync(target)) {
-      fs.unlinkSync(target);
-    }
+    await deleteAttachmentFile(filePath);
   }
 
-  db.delete(trades).where(eq(trades.id, id)).run();
+  await db.delete(trades).where(eq(trades.id, id)).run();
   revalidatePath("/trades");
   revalidatePath("/");
   redirect("/trades");

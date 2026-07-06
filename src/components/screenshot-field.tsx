@@ -5,6 +5,8 @@ import { ImagePlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MAX_FILES = 4;
+// Hosted request bodies cap around 4.5MB — keep the whole form under it
+const MAX_TOTAL_BYTES = 3.5 * 1024 * 1024;
 
 interface PendingShot {
   file: File;
@@ -38,13 +40,19 @@ export function ScreenshotField() {
     );
     if (images.length === 0) return;
     setShots((current) => {
-      const next = [
-        ...current,
-        ...images.map((file) => ({
-          file,
-          preview: URL.createObjectURL(file),
-        })),
-      ].slice(0, MAX_FILES);
+      const next = [...current];
+      let total = current.reduce((s, shot) => s + shot.file.size, 0);
+      for (const file of images) {
+        if (next.length >= MAX_FILES) break;
+        if (total + file.size > MAX_TOTAL_BYTES) {
+          alert(
+            "Screenshots for one save are limited to ~3.5MB combined — attach the rest from the trade page after saving.",
+          );
+          break;
+        }
+        total += file.size;
+        next.push({ file, preview: URL.createObjectURL(file) });
+      }
       syncInput(next);
       return next;
     });

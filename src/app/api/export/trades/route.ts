@@ -8,7 +8,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const rows = db
+  const rows = await db
     .select({
       id: trades.id,
       account: accounts.name,

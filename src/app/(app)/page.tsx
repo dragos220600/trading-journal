@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const rows = db
+  const rows = await db
     .select({
       id: trades.id,
       accountId: trades.accountId,
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
 
   // Prop-firm guardrails for accounts with a trailing drawdown configured
   const today = localToday();
-  const guardrailAccounts = db
+  const guardrailAccounts = await db
     .select()
     .from(accounts)
     .where(

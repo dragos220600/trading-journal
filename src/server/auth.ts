@@ -38,12 +38,13 @@ export async function createSession(userId: number) {
   const expiresAt = new Date(
     Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
-  db.insert(sessions).values({ token, userId, expiresAt }).run();
+  await db.insert(sessions).values({ token, userId, expiresAt }).run();
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   });
@@ -52,7 +53,7 @@ export async function createSession(userId: number) {
 export async function destroySession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (token) db.delete(sessions).where(eq(sessions.token, token)).run();
+  if (token) await db.delete(sessions).where(eq(sessions.token, token)).run();
   cookieStore.delete(SESSION_COOKIE);
 }
 
@@ -67,12 +68,15 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const row = db
+  const row = await db
     .select({ id: users.id, email: users.email, name: users.name })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(
-      and(eq(sessions.token, token), gt(sessions.expiresAt, new Date().toISOString())),
+      and(
+        eq(sessions.token, token),
+        gt(sessions.expiresAt, new Date().toISOString()),
+      ),
     )
     .get();
   return row ?? null;
@@ -91,19 +95,25 @@ export async function requireUser(): Promise<CurrentUser> {
  * Rows created before auth existed have userId NULL. The first user to
  * register adopts them, so the original journal keeps its history.
  */
-export function claimOrphanData(userId: number) {
-  const userCount = db.select({ c: count() }).from(users).get()?.c ?? 0;
-  if (userCount !== 1) return;
+export async function claimOrphanData(userId: number) {
+  const row = await db.select({ c: count() }).from(users).get();
+  if ((row?.c ?? 0) !== 1) return;
 
-  db.transaction(() => {
-    db.update(accounts).set({ userId }).where(isNull(accounts.userId)).run();
-    db.update(trades).set({ userId }).where(isNull(trades.userId)).run();
-    db.update(setups).set({ userId }).where(isNull(setups.userId)).run();
-    db.update(journalEntries)
+  await db.transaction(async (tx) => {
+    await tx
+      .update(accounts)
+      .set({ userId })
+      .where(isNull(accounts.userId))
+      .run();
+    await tx.update(trades).set({ userId }).where(isNull(trades.userId)).run();
+    await tx.update(setups).set({ userId }).where(isNull(setups.userId)).run();
+    await tx
+      .update(journalEntries)
       .set({ userId })
       .where(isNull(journalEntries.userId))
       .run();
-    db.update(importBatches)
+    await tx
+      .update(importBatches)
       .set({ userId })
       .where(isNull(importBatches.userId))
       .run();

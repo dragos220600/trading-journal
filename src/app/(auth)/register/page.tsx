@@ -11,7 +11,11 @@ export default function RegisterPage() {
       <p className="mb-6 text-sm text-text-muted">
         Your trades, journal and playbook — private to your account.
       </p>
-      <AuthForm mode="register" action={registerAction} />
+      <AuthForm
+        mode="register"
+        action={registerAction}
+        requireInvite={Boolean(process.env.REGISTRATION_CODE)}
+      />
     </div>
   );
 }

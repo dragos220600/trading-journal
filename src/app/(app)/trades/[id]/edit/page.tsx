@@ -19,21 +19,21 @@ export default async function EditTradePage({
   const tradeId = Number(id);
   if (!Number.isFinite(tradeId)) notFound();
 
-  const trade = db
+  const trade = await db
     .select()
     .from(trades)
     .where(and(eq(trades.id, tradeId), eq(trades.userId, user.id)))
     .get();
   if (!trade) notFound();
 
-  const tagIds = db
+  const tagRows = await db
     .select({ tagId: tradeTags.tagId })
     .from(tradeTags)
     .where(eq(tradeTags.tradeId, tradeId))
-    .all()
-    .map((r) => r.tagId);
+    .all();
+  const tagIds = tagRows.map((r) => r.tagId);
 
-  const formData = getTradeFormData(user.id);
+  const formData = await getTradeFormData(user.id);
   const updateTradeWithId = updateTrade.bind(null, tradeId);
 
   return (

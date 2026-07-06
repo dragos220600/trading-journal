@@ -14,8 +14,8 @@ export interface JournalSaveState {
   savedAt: string | null;
 }
 
-function getOrCreateEntry(userId: number, date: string) {
-  const existing = db
+async function getOrCreateEntry(userId: number, date: string) {
+  const existing = await db
     .select()
     .from(journalEntries)
     .where(
@@ -23,11 +23,7 @@ function getOrCreateEntry(userId: number, date: string) {
     )
     .get();
   if (existing) return existing;
-  return db
-    .insert(journalEntries)
-    .values({ userId, date })
-    .returning()
-    .get();
+  return db.insert(journalEntries).values({ userId, date }).returning().get();
 }
 
 export async function saveJournalEntry(
@@ -48,8 +44,9 @@ export async function saveJournalEntry(
       optionalScore.parse(formData.get("sleepQuality") || undefined) ?? null,
   };
 
-  const entry = getOrCreateEntry(user.id, date);
-  db.update(journalEntries)
+  const entry = await getOrCreateEntry(user.id, date);
+  await db
+    .update(journalEntries)
     .set({ ...data, updatedAt: new Date().toISOString() })
     .where(eq(journalEntries.id, entry.id))
     .run();
@@ -71,11 +68,12 @@ export async function addJournalAttachment(date: string, formData: FormData) {
     z.string().trim().max(300).catch("").parse(formData.get("caption")) ||
     null;
 
-  const entry = getOrCreateEntry(user.id, date);
-  const fileName = await saveAttachmentFile(file, `day-${date}`);
+  const entry = await getOrCreateEntry(user.id, date);
+  const filePath = await saveAttachmentFile(file, `day-${date}`);
 
-  db.insert(attachments)
-    .values({ journalEntryId: entry.id, filePath: fileName, caption })
+  await db
+    .insert(attachments)
+    .values({ journalEntryId: entry.id, filePath, caption })
     .run();
 
   revalidatePath(`/journal/${date}`);

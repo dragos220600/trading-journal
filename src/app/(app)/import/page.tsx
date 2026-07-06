@@ -30,7 +30,7 @@ const FORMATS = [
 
 export default async function ImportPage() {
   const user = await requireUser();
-  const batches = db
+  const batches = await db
     .select()
     .from(importBatches)
     .where(eq(importBatches.userId, user.id))

@@ -19,13 +19,13 @@ const inputCls =
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const accountRows = db
+  const accountRows = await db
     .select()
     .from(accounts)
     .where(eq(accounts.userId, user.id))
     .orderBy(asc(accounts.isArchived), asc(accounts.name))
     .all();
-  const instrumentRows = db
+  const instrumentRows = await db
     .select()
     .from(instruments)
     .orderBy(asc(instruments.symbol))

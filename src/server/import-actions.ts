@@ -58,17 +58,13 @@ export async function importTradovateCsv(
   }
 
   // Dedup: skip fills whose order ID this user already imported
-  const existingIds = new Set(
-    db
-      .select({ id: executions.externalId })
-      .from(executions)
-      .innerJoin(trades, eq(executions.tradeId, trades.id))
-      .where(
-        and(isNotNull(executions.externalId), eq(trades.userId, user.id)),
-      )
-      .all()
-      .map((r) => r.id!),
-  );
+  const existingIdRows = await db
+    .select({ id: executions.externalId })
+    .from(executions)
+    .innerJoin(trades, eq(executions.tradeId, trades.id))
+    .where(and(isNotNull(executions.externalId), eq(trades.userId, user.id)))
+    .all();
+  const existingIds = new Set(existingIdRows.map((r) => r.id!));
   const freshFills = parsed.fills.filter(
     (f) => !f.externalId || !existingIds.has(f.externalId),
   );
@@ -87,7 +83,7 @@ export async function importTradovateCsv(
 
   // Overlap protection: fills that look like trades logged by hand
   // (manual executions have no broker order ID to dedup on)
-  const manualExecutions = db
+  const manualExecutions = await db
     .select({
       accountId: trades.accountId,
       root: instruments.symbol,
@@ -101,13 +97,13 @@ export async function importTradovateCsv(
     .innerJoin(instruments, eq(trades.instrumentId, instruments.id))
     .where(and(isNull(executions.externalId), eq(trades.userId, user.id)))
     .all();
+  const userAccountRows = await db
+    .select({ id: accounts.id, name: accounts.name })
+    .from(accounts)
+    .where(eq(accounts.userId, user.id))
+    .all();
   const accountIdByName = new Map(
-    db
-      .select({ id: accounts.id, name: accounts.name })
-      .from(accounts)
-      .where(eq(accounts.userId, user.id))
-      .all()
-      .map((a) => [a.name, a.id] as const),
+    userAccountRows.map((a) => [a.name, a.id] as const),
   );
   const { kept, skipped: manualOverlaps } = splitManualOverlaps(
     freshFills,
@@ -138,15 +134,13 @@ export async function importTradovateCsv(
   const built = buildTrades(kept);
 
   // Map contract roots to instruments
-  const instrumentRows = db.select().from(instruments).all();
+  const instrumentRows = await db.select().from(instruments).all();
   const instrumentBySymbol = new Map(
     instrumentRows.map((i) => [i.symbol.toUpperCase(), i]),
   );
   const unknownRoots = [
     ...new Set(
-      built
-        .map((t) => t.root)
-        .filter((root) => !instrumentBySymbol.has(root)),
+      built.map((t) => t.root).filter((root) => !instrumentBySymbol.has(root)),
     ),
   ];
   if (unknownRoots.length > 0) {
@@ -165,7 +159,7 @@ export async function importTradovateCsv(
   }
 
   // Map account names, creating unseen ones (prop traders run many)
-  const accountRows = db
+  const accountRows = await db
     .select()
     .from(accounts)
     .where(eq(accounts.userId, user.id))
@@ -173,10 +167,10 @@ export async function importTradovateCsv(
   const accountByName = new Map(accountRows.map((a) => [a.name, a]));
   const newAccounts: string[] = [];
 
-  db.transaction(() => {
+  await db.transaction(async (tx) => {
     for (const name of new Set(importable.map((t) => t.account))) {
       if (!accountByName.has(name)) {
-        const inserted = db
+        const inserted = await tx
           .insert(accounts)
           .values({ userId: user.id, name, broker: "Tradovate" })
           .returning()
@@ -186,7 +180,7 @@ export async function importTradovateCsv(
       }
     }
 
-    const batch = db
+    const batch = await tx
       .insert(importBatches)
       .values({
         userId: user.id,
@@ -219,7 +213,7 @@ export async function importTradovateCsv(
           ? metrics.netPnl / account.rValue
           : null;
 
-      const inserted = db
+      const inserted = await tx
         .insert(trades)
         .values({
           userId: user.id,
@@ -242,7 +236,8 @@ export async function importTradovateCsv(
         .get();
 
       for (const execution of trade.executions) {
-        db.insert(executions)
+        await tx
+          .insert(executions)
           .values({
             tradeId: inserted.id,
             side: execution.side,
@@ -255,7 +250,6 @@ export async function importTradovateCsv(
           .run();
       }
     }
-
   });
 
   revalidatePath("/trades");
@@ -289,27 +283,31 @@ export async function importTradovateCsv(
 export async function undoImportBatch(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));
-  const owned = db
+  const owned = await db
     .select({ id: importBatches.id })
     .from(importBatches)
     .where(and(eq(importBatches.id, id), eq(importBatches.userId, user.id)))
     .get();
   if (!owned) throw new Error("Import batch not found");
-  db.transaction(() => {
-    const batchTrades = db
+
+  await db.transaction(async (tx) => {
+    const batchTrades = await tx
       .select({ id: trades.id })
       .from(trades)
       .where(eq(trades.importBatchId, id))
       .all();
     if (batchTrades.length > 0) {
-      db.delete(trades).where(
-        inArray(
-          trades.id,
-          batchTrades.map((t) => t.id),
-        ),
-      ).run();
+      await tx
+        .delete(trades)
+        .where(
+          inArray(
+            trades.id,
+            batchTrades.map((t) => t.id),
+          ),
+        )
+        .run();
     }
-    db.delete(importBatches).where(eq(importBatches.id, id)).run();
+    await tx.delete(importBatches).where(eq(importBatches.id, id)).run();
   });
   revalidatePath("/trades");
   revalidatePath("/import");

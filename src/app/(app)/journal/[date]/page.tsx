@@ -32,13 +32,13 @@ export default async function JournalDayPage({
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
 
-  const entry = db
+  const entry = await db
     .select()
     .from(journalEntries)
     .where(and(eq(journalEntries.userId, user.id), eq(journalEntries.date, date)))
     .get();
 
-  const dayTrades = db
+  const dayTrades = await db
     .select({
       id: trades.id,
       entryTime: trades.entryTime,
@@ -56,7 +56,7 @@ export default async function JournalDayPage({
     Math.round(dayTrades.reduce((s, t) => s + (t.netPnl ?? 0), 0) * 100) / 100;
 
   const attachmentRows = entry
-    ? db
+    ? await db
         .select()
         .from(attachments)
         .where(eq(attachments.journalEntryId, entry.id))

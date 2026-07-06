@@ -19,7 +19,7 @@ interface DayRow {
 
 export default async function JournalPage() {
   const user = await requireUser();
-  const tradeRows = db
+  const tradeRows = await db
     .select({
       entryTime: trades.entryTime,
       netPnl: trades.netPnl,
@@ -30,7 +30,7 @@ export default async function JournalPage() {
     .where(eq(trades.userId, user.id))
     .all();
 
-  const entryRows = db
+  const entryRows = await db
     .select()
     .from(journalEntries)
     .where(eq(journalEntries.userId, user.id))

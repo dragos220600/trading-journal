@@ -36,14 +36,23 @@ export async function registerAction(
   const name =
     z.string().trim().max(80).catch("").parse(formData.get("name")) || null;
 
-  const existing = db
+  // Public deployment: registration can require an invite code
+  const requiredCode = process.env.REGISTRATION_CODE;
+  if (requiredCode) {
+    const code = String(formData.get("inviteCode") ?? "").trim();
+    if (code !== requiredCode) {
+      return { error: "Invalid invite code." };
+    }
+  }
+
+  const existing = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, parsed.data.email))
     .get();
   if (existing) return { error: "An account with this email already exists." };
 
-  const user = db
+  const user = await db
     .insert(users)
     .values({
       email: parsed.data.email,
@@ -53,7 +62,7 @@ export async function registerAction(
     .returning()
     .get();
 
-  claimOrphanData(user.id);
+  await claimOrphanData(user.id);
   await createSession(user.id);
   redirect("/");
 }
@@ -70,7 +79,11 @@ export async function loginAction(
     .parse(formData.get("email"));
   const password = String(formData.get("password") ?? "");
 
-  const user = db.select().from(users).where(eq(users.email, email)).get();
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return { error: "Wrong email or password." };
   }
