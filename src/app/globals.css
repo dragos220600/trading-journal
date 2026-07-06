@@ -1,26 +1,286 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------
+   "TRADELOG terminal" — design tokens (from the user's templates)
+   Flat near-black neutral surfaces, cyan as the single identity
+   accent, bright green/pink strictly for profit/loss, mono
+   numerals everywhere, uppercase letterspaced labels.
+   --------------------------------------------------------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces — neutral near-black, flat with hairline borders */
+  --ink-deep: #0a0c0e; /* page background */
+  --ink-raised: #0e1114; /* cards, sidebar */
+  --ink-card: #14181c; /* inputs, inner panels, badges */
+  --ink-line: #1d2328; /* hairline borders */
+  --ink-line-bright: #2a3238; /* hovered borders */
+  --ink-hover: #14191d; /* hover fills */
+
+  /* Text */
+  --text-primary: #e6eaee;
+  --text-muted: #8b949c;
+  --text-faint: #565f66;
+
+  /* Identity accent — terminal cyan */
+  --accent: #22d3ee;
+  --accent-soft: #67e8f9;
+  --accent-dim: #155e70;
+  --accent-ink: #052a33; /* text on accent fills */
+
+  /* Semantic P&L only */
+  --profit: #2ee08a;
+  --profit-dim: #0f3d27;
+  --loss: #f8517f;
+  --loss-dim: #46101f;
+
+  /* Chart fills — validated for large marks on the dark surface;
+     bright tokens above are for 2px lines and text only */
+  --profit-fill: #158f50;
+  --loss-fill: #ea4f7d;
+  --accent-fill: #0e9bb8;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-ink-deep: var(--ink-deep);
+  --color-ink-raised: var(--ink-raised);
+  --color-ink-card: var(--ink-card);
+  --color-ink-line: var(--ink-line);
+  --color-ink-line-bright: var(--ink-line-bright);
+  --color-ink-hover: var(--ink-hover);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-profit: var(--profit);
+  --color-loss: var(--loss);
+  --color-profit-fill: var(--profit-fill);
+  --color-loss-fill: var(--loss-fill);
+  --color-accent-fill: var(--accent-fill);
+
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-plex-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ink-deep);
+  color: var(--text-primary);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* Every number in the app: mono, tabular, lining */
+.num {
+  font-family: var(--font-plex-mono), monospace;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Eyebrow labels — small caps signage, mono per the templates */
+.eyebrow {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.6563rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ------------------------------ cards ------------------------------ */
+
+.card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--ink-line);
+  background: var(--ink-raised);
+}
+
+.card-tile {
+  border-radius: 0.75rem;
+  border: 1px solid var(--ink-line);
+  background: var(--ink-raised);
+}
+
+.card-hover {
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.card-hover:hover {
+  border-color: var(--ink-line-bright);
+  background: #10141a;
+}
+
+/* ----------------------------- buttons ----------------------------- */
+
+.btn-accent {
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  box-shadow: 0 0 20px -6px rgba(34, 211, 238, 0.55);
+  transition:
+    filter 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s var(--ease-out-soft);
+}
+.btn-accent:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 28px -6px rgba(34, 211, 238, 0.7);
+}
+.btn-accent:active {
+  transform: scale(0.98);
+}
+
+.btn-ghost {
+  border-radius: 0.5rem;
+  border: 1px solid var(--ink-line);
+  color: var(--text-primary);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.btn-ghost:hover {
+  background: var(--ink-hover);
+  border-color: var(--ink-line-bright);
+}
+
+/* ------------------------- chips & badges -------------------------- */
+
+.chip {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.6563rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ink-line);
+  color: var(--text-muted);
+  padding: 0.4375rem 0.75rem;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.chip:hover {
+  color: var(--text-primary);
+  border-color: var(--ink-line-bright);
+}
+.chip-active {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.badge {
+  font-family: var(--font-plex-mono), monospace;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 0.25rem;
+  padding: 0.1875rem 0.4375rem;
+}
+.badge-win {
+  background: rgba(46, 224, 138, 0.12);
+  color: var(--profit);
+}
+.badge-loss {
+  background: rgba(248, 81, 127, 0.12);
+  color: var(--loss);
+}
+.badge-scratch {
+  background: var(--ink-card);
+  color: var(--text-muted);
+}
+.badge-open {
+  background: rgba(34, 211, 238, 0.12);
+  color: var(--accent);
+}
+
+/* --------------------------- motion layer --------------------------- */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered reveal: set style="--i: n" per element */
+.reveal {
+  animation: rise-in 0.5s var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: page-fade 0.3s var(--ease-out-soft) both;
+}
+
+/* ------------------------- table interactions ----------------------- */
+
+.row-link {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.row-link:hover {
+  background: var(--ink-hover);
+  box-shadow: inset 2px 0 0 0 var(--accent);
+}
+
+/* ----------------------------- chrome ------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--accent-dim);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-line-bright) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-line-bright);
+  border-radius: 8px;
+  border: 2px solid var(--ink-deep);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

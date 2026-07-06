@@ -20,6 +20,18 @@
 # production
 /build
 
+# local data — the journal database and screenshot attachments (private!)
+/data/
+/drizzle/
+
+# private: real broker exports (account numbers) and design refs (real P&L)
+/Orders.csv
+/Design templates/
+
+# tooling artifacts
+/.playwright-mcp/
+/.claude/
+
 # misc
 .DS_Store
 *.pem
