@@ -15,10 +15,22 @@ file on this machine, owned by you.
 ## Running
 
 ```bash
-npm run dev        # start at http://localhost:3000
+# production (what you share with friends on the LAN)
+npm run build
+npm run start      # serves at http://localhost:3000 / http://<your-lan-ip>:3000
+
+# development
+npm run dev
+
+# database
 npm run db:push    # apply schema changes to data/journal.db
+npm run db:seed    # seed CME instruments + starter tags (idempotent)
 npm run db:studio  # browse the database in Drizzle Studio
 ```
+
+Auth: register at `/register` — the **first** user to register adopts any
+data created before auth existed. Traffic is plain HTTP; keep it on the
+LAN and don't port-forward it to the internet as-is.
 
 ## Data model (src/db/schema.ts)
 
