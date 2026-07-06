@@ -6,6 +6,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Ledger — Trading Journal
 
+READ `DOCUMENTATION.md` FIRST for the full picture: architecture, data
+model, domain invariants, import pipeline, performance rules, deployment
+runbook, known quirks, and the parked-ideas list.
+
 Personal, local-first trading journal for a full-time day trader. Private by
 design: all data stays in `data/journal.db` (SQLite, gitignored).
 

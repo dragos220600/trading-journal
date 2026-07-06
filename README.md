@@ -1,5 +1,8 @@
 # Ledger — Personal Trading Journal
 
+> Full developer documentation — architecture, data model, domain rules,
+> deployment and gotchas — lives in [DOCUMENTATION.md](DOCUMENTATION.md).
+
 A private, local-first trading journal for a full-time day trader. No
 subscriptions, no cloud, no one else's servers: all data lives in a SQLite
 file on this machine, owned by you.
