@@ -103,6 +103,41 @@ export async function updateAccountR(formData: FormData) {
   revalidatePath("/");
 }
 
+/** Prop-firm guardrail rules — all optional, empty clears a rule. */
+export async function updateAccountRules(formData: FormData) {
+  const user = await requireUser();
+  const id = z.coerce.number().parse(formData.get("id"));
+  const owned = db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, id), eq(accounts.userId, user.id)))
+    .get();
+  if (!owned) throw new Error("Account not found");
+
+  const optional = (name: string) => {
+    const raw = String(formData.get(name) ?? "").trim();
+    return raw === "" ? null : z.coerce.number().positive().parse(raw);
+  };
+  const initialBalance = z.coerce
+    .number()
+    .min(0)
+    .parse(formData.get("initialBalance"));
+
+  db.update(accounts)
+    .set({
+      initialBalance,
+      trailingDrawdown: optional("trailingDrawdown"),
+      drawdownFreezeAt: optional("drawdownFreezeAt"),
+      profitTarget: optional("profitTarget"),
+      dailyLossLimit: optional("dailyLossLimit"),
+    })
+    .where(eq(accounts.id, id))
+    .run();
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+}
+
 export async function renameAccount(formData: FormData) {
   const user = await requireUser();
   const id = z.coerce.number().parse(formData.get("id"));

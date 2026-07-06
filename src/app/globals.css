@@ -33,6 +33,10 @@
   --loss: #f8517f;
   --loss-dim: #46101f;
 
+  /* Status warning (guardrail caution) — not for P&L, not decorative */
+  --warn: #e8b13f;
+  --warn-fill: #a87c1e;
+
   /* Chart fills — validated for large marks on the dark surface;
      bright tokens above are for 2px lines and text only */
   --profit-fill: #158f50;
@@ -64,6 +68,8 @@
   --color-profit-fill: var(--profit-fill);
   --color-loss-fill: var(--loss-fill);
   --color-accent-fill: var(--accent-fill);
+  --color-warn: var(--warn);
+  --color-warn-fill: var(--warn-fill);
 
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);
@@ -197,6 +203,10 @@ body {
 .badge-scratch {
   background: var(--ink-card);
   color: var(--text-muted);
+}
+.badge-warn {
+  background: rgba(232, 177, 63, 0.12);
+  color: var(--warn);
 }
 .badge-open {
   background: rgba(34, 211, 238, 0.12);

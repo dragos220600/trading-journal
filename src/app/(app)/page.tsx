@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { Download, Plus } from "lucide-react";
 import { db } from "@/db";
-import { instruments, setups, trades } from "@/db/schema";
+import { accounts, instruments, setups, trades } from "@/db/schema";
 import { equityCurve, summaryStats, type AnalyticsTrade } from "@/lib/analytics";
+import { computeGuardrail } from "@/lib/guardrail";
 import { CountUp } from "@/components/count-up";
 import { EquityCurve } from "@/components/charts/equity-curve";
+import { GuardrailCard } from "@/components/guardrail-card";
 import {
   formatPrice,
   formatSignedMoney,
@@ -22,6 +24,7 @@ export default async function DashboardPage() {
   const rows = db
     .select({
       id: trades.id,
+      accountId: trades.accountId,
       entryTime: trades.entryTime,
       exitTime: trades.exitTime,
       direction: trades.direction,
@@ -56,6 +59,41 @@ export default async function DashboardPage() {
 
   const stats = summaryStats(closed);
   const curve = equityCurve(closed);
+
+  // Prop-firm guardrails for accounts with a trailing drawdown configured
+  const today = localToday();
+  const guardrailAccounts = db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, user.id),
+        eq(accounts.isArchived, false),
+        isNotNull(accounts.trailingDrawdown),
+      ),
+    )
+    .all();
+  const guardrails = guardrailAccounts.map((account) => ({
+    name: account.name,
+    status: computeGuardrail(
+      {
+        initialBalance: account.initialBalance,
+        trailingDrawdown: account.trailingDrawdown!,
+        drawdownFreezeAt: account.drawdownFreezeAt,
+        profitTarget: account.profitTarget,
+        dailyLossLimit: account.dailyLossLimit,
+      },
+      rows
+        .filter(
+          (t) =>
+            t.accountId === account.id &&
+            t.status === "closed" &&
+            t.netPnl != null,
+        )
+        .map((t) => ({ netPnl: t.netPnl!, time: t.exitTime ?? t.entryTime })),
+      today,
+    ),
+  }));
 
   const thisMonth = localToday().slice(0, 7);
   const lastMonth = shiftDate(`${thisMonth}-01`, -1).slice(0, 7);
@@ -134,8 +172,8 @@ export default async function DashboardPage() {
       className: avgR != null ? pnlColor(avgR) : "text-text-faint",
       delta:
         rTrades.length > 0
-          ? `${rTrades.length} ${rTrades.length === 1 ? "trade" : "trades"} with a stop`
-          : "log stops to track R",
+          ? `${rTrades.length} ${rTrades.length === 1 ? "trade" : "trades"} with R`
+          : "set an account R value to track R",
       deltaClass: "text-text-faint",
     },
   ];
@@ -234,6 +272,18 @@ export default async function DashboardPage() {
               </div>
             ))}
           </section>
+
+          {/* Prop-firm guardrails */}
+          {guardrails.length > 0 && (
+            <section
+              className="mb-6 grid gap-4 lg:grid-cols-2 reveal"
+              style={{ "--i": 5 } as React.CSSProperties}
+            >
+              {guardrails.map(({ name, status }) => (
+                <GuardrailCard key={name} accountName={name} status={status} />
+              ))}
+            </section>
+          )}
 
           {/* Equity curve + top playbooks */}
           <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_320px]">

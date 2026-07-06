@@ -51,6 +51,13 @@ export const accounts = sqliteTable("accounts", {
   /** Fixed $ per 1R for this account; when set it defines every trade's
       R-multiple (netPnl / rValue), overriding stop-based R. */
   rValue: real("r_value"),
+
+  /* Prop-firm guardrail rules (all optional; guardrail shows when
+     trailingDrawdown is set) */
+  trailingDrawdown: real("trailing_drawdown"), // $ distance below equity peak
+  drawdownFreezeAt: real("drawdown_freeze_at"), // $ balance level where the threshold stops trailing (e.g. Apex PA: start + 100)
+  profitTarget: real("profit_target"), // $ above starting balance (eval target)
+  dailyLossLimit: real("daily_loss_limit"), // $ max loss per day
   isArchived: integer("is_archived", { mode: "boolean" })
     .notNull()
     .default(false),

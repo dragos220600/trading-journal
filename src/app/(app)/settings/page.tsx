@@ -6,6 +6,7 @@ import {
   createInstrument,
   toggleAccountArchived,
   updateAccountR,
+  updateAccountRules,
 } from "@/server/actions";
 import { formatMoney } from "@/lib/format";
 import { requireUser } from "@/server/auth";
@@ -195,6 +196,126 @@ export default async function SettingsPage() {
             to stop-based R.
           </p>
         </form>
+      </section>
+
+      {/* Prop-firm guardrails */}
+      <section className="mb-12">
+        <h2 className="eyebrow mb-1.5">Prop-firm guardrails</h2>
+        <p className="mb-4 text-sm text-text-muted max-w-2xl">
+          Set your firm&apos;s rules per account and the dashboard shows a
+          live distance-to-breach meter, computed from your closed trades.
+          For Apex PA accounts the threshold stops trailing — set
+          &quot;freeze at&quot; to starting balance + $100.
+        </p>
+        <div className="space-y-3">
+          {accountRows
+            .filter((a) => !a.isArchived)
+            .map((account) => (
+              <form
+                key={account.id}
+                action={updateAccountRules}
+                className="card flex flex-wrap items-end gap-3 p-4"
+              >
+                <input type="hidden" name="id" value={account.id} />
+                <p className="w-full text-sm font-semibold sm:w-44 sm:shrink-0">
+                  {account.name}
+                </p>
+                <div>
+                  <label
+                    htmlFor={`ib-${account.id}`}
+                    className="block text-xs font-medium text-text-muted mb-1.5"
+                  >
+                    Starting balance ($)
+                  </label>
+                  <input
+                    id={`ib-${account.id}`}
+                    name="initialBalance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    defaultValue={account.initialBalance}
+                    className={cn(inputCls, "num w-32")}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`tdd-${account.id}`}
+                    className="block text-xs font-medium text-text-muted mb-1.5"
+                  >
+                    Trailing drawdown ($)
+                  </label>
+                  <input
+                    id={`tdd-${account.id}`}
+                    name="trailingDrawdown"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={account.trailingDrawdown ?? ""}
+                    placeholder="5000"
+                    className={cn(inputCls, "num w-32")}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`frz-${account.id}`}
+                    className="block text-xs font-medium text-text-muted mb-1.5"
+                  >
+                    Freeze at ($ balance)
+                  </label>
+                  <input
+                    id={`frz-${account.id}`}
+                    name="drawdownFreezeAt"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={account.drawdownFreezeAt ?? ""}
+                    placeholder="optional"
+                    className={cn(inputCls, "num w-32")}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`tgt-${account.id}`}
+                    className="block text-xs font-medium text-text-muted mb-1.5"
+                  >
+                    Profit target ($)
+                  </label>
+                  <input
+                    id={`tgt-${account.id}`}
+                    name="profitTarget"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={account.profitTarget ?? ""}
+                    placeholder="optional"
+                    className={cn(inputCls, "num w-28")}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor={`dll-${account.id}`}
+                    className="block text-xs font-medium text-text-muted mb-1.5"
+                  >
+                    Daily loss limit ($)
+                  </label>
+                  <input
+                    id={`dll-${account.id}`}
+                    name="dailyLossLimit"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={account.dailyLossLimit ?? ""}
+                    placeholder="optional"
+                    className={cn(inputCls, "num w-28")}
+                  />
+                </div>
+                <button type="submit" className="btn-accent px-4 py-2 text-sm">
+                  Save rules
+                </button>
+              </form>
+            ))}
+        </div>
       </section>
 
       {/* Instruments */}
